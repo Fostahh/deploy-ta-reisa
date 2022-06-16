@@ -1,3 +1,4 @@
+from venv import create
 import tweepy
 from datetime import datetime, timedelta, timezone
 import mysql.connector
@@ -7,16 +8,17 @@ import pandas as pd
 import re
 from cleantext import clean
 
-# model = pickle.load(open(r'model\clf.pkl','rb'))
-# tfidf = pickle.load(open(r'model\tfidf1.pkl', 'rb'))
 # model = pickle.load(open('/Users/azri-m/Desktop/Deploy TA/model/clf.pkl','rb'))
 # tfidf = pickle.load(open('/Users/azri-m/Desktop/Deploy TA/model/tfidf1.pkl', 'rb'))
-model = pickle.load(open('/app/model/clf.pkl','rb'))
-tfidf = pickle.load(open('/app/model/tfidf1.pkl', 'rb'))
+
+model_gempa = pickle.load(open('/app/model/clf.pkl','rb'))
+tfidf_gempa = pickle.load(open('/app/model/tfidf1.pkl', 'rb'))
+model_banjir = pickle.load(open('/app/model/clf_banjir.pkl', 'rb'))
+tfidf_banjir = pickle.load(open('/app/model/tfidf1_banjir.pkl', 'rb'))
 
 
 mydb = mysql.connector.connect(
-  host="34.124.187.78",
+  host="34.143.177.53",
   user="azri",
   passwd="12345",
   database="db_skripsi")
@@ -27,18 +29,13 @@ class StreamListener(tweepy.Stream):
         if len(self.tweets) == self.limit:
             self.disconnect()
    
-
     def on_data(self, data):
         all_data = json.loads(data)
         text = all_data['text']
         text = clean(text, no_emoji=True)
-        print("Ini text ",text)
-        predict = model.predict(tfidf.transform([text]))
-        all_data['predicted'] = int(predict)
-        predicted = all_data['predicted']
-        print("Ini predicted data ", predicted)
         created_at = all_data['created_at']
         id = all_data['id']
+        print(all_data +"\n")
         if all_data['place'] == None:
           place = None
           location = None
@@ -53,6 +50,8 @@ class StreamListener(tweepy.Stream):
           lat,lon = coordinates[0][0]
         username = all_data['user']['screen_name']
         if username == "infoBMKG":
+            mag = re.findall(r'Mag:(\d+.?\d*)', text)
+            mag = float(mag[0])
             BT = re.findall(r'(\d+.?\d*) BT', text)
             re_longitude = float(BT[0])
             if "LU" in text:
@@ -62,13 +61,19 @@ class StreamListener(tweepy.Stream):
                 LS = re.findall(r'(\d+.?\d*) LS',text)
                 re_latitude = float(LS[0])*-1
             mycursor = mydb.cursor()
-            mycursor.execute("INSERT INTO bmkg (text,username, re_longitude, re_latitude) VALUES (%s, %s, %s, %s)",(text,username,re_longitude,re_latitude))
+            mycursor.execute("INSERT INTO bmkg (text,username, re_longitude, re_latitude, created_at, mag) VALUES (%s, %s, %s, %s, %s, %s)",(text,username,re_longitude,re_latitude,created_at,mag))
             mydb.commit()
         if "gempa" in text.lower():
+            predict = model_gempa.predict(tfidf_gempa.transform([text]))
+            all_data['predicted'] = int(predict)
+            predicted = all_data['predicted']
             mycursor = mydb.cursor()
             mycursor.execute("INSERT INTO gempa (id, username, text, created_at, location, predicted, lon, lat) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",(id,username,text,created_at,location,predicted,lon,lat))
             mydb.commit()
         elif "banjir" in text.lower():
+            predict = model_banjir.predict(tfidf_banjir.transform([text]))
+            all_data['predicted'] = int(predict)
+            predicted = all_data['predicted']
             mycursor = mydb.cursor()
             mycursor.execute("INSERT INTO banjir (id, username, text, created_at, location, predicted, lon, lat) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",(id,username,text,created_at,location,predicted,lon,lat))
             mydb.commit()
