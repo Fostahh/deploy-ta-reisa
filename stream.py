@@ -12,9 +12,9 @@ from cleantext import clean
 # tfidf = pickle.load(open('/Users/azri-m/Desktop/Deploy TA/model/tfidf1.pkl', 'rb'))
 
 model_gempa = pickle.load(open('/home/azrimuhammad777/deploy-ta-reisa/model/clf.pkl','rb'))
-tfidf_gempa = pickle.load(open('/home/azrimuhammad777/deploy-ta-reisa/app/model/tfidf1.pkl', 'rb'))
-model_banjir = pickle.load(open('/home/azrimuhammad777/deploy-ta-reisa/app/model/clf_banjir.pkl', 'rb'))
-tfidf_banjir = pickle.load(open('/home/azrimuhammad777/deploy-ta-reisa/app/model/tfidf1_banjir.pkl', 'rb'))
+tfidf_gempa = pickle.load(open('/home/azrimuhammad777/deploy-ta-reisa/model/tfidf1.pkl', 'rb'))
+model_banjir = pickle.load(open('/home/azrimuhammad777/deploy-ta-reisa/model/clf_banjir.pkl', 'rb'))
+tfidf_banjir = pickle.load(open('/home/azrimuhammad777/deploy-ta-reisa/model/tfidf1_banjir.pkl', 'rb'))
 
 
 mydb = mysql.connector.connect(
@@ -49,6 +49,7 @@ class StreamListener(tweepy.Stream):
           lat,lon = coordinates[0][0]
         username = all_data['user']['screen_name']
         if username == "infoBMKG":
+            print(mag)
             mag = re.findall(r'Mag:(\d+.?\d*)', text)
             mag = float(mag[0])
             BT = re.findall(r'(\d+.?\d*) BT', text)
