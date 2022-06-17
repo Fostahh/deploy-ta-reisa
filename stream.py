@@ -11,10 +11,10 @@ from cleantext import clean
 # model = pickle.load(open('/Users/azri-m/Desktop/Deploy TA/model/clf.pkl','rb'))
 # tfidf = pickle.load(open('/Users/azri-m/Desktop/Deploy TA/model/tfidf1.pkl', 'rb'))
 
-model_gempa = pickle.load(open('/home/azrimuhammad777/deploy-ta-reisa/model/clf.pkl','rb'))
-tfidf_gempa = pickle.load(open('/home/azrimuhammad777/deploy-ta-reisa/model/tfidf1.pkl', 'rb'))
-model_banjir = pickle.load(open('/home/azrimuhammad777/deploy-ta-reisa/model/clf_banjir.pkl', 'rb'))
-tfidf_banjir = pickle.load(open('/home/azrimuhammad777/deploy-ta-reisa/model/tfidf1_banjir.pkl', 'rb'))
+model_gempa = pickle.load(open('/Users/azri-m/Desktop/Deploy TA/model/clf.pkl','rb'))
+tfidf_gempa = pickle.load(open('/Users/azri-m/Desktop/Deploy TA/model/tfidf1.pkl', 'rb'))
+model_banjir = pickle.load(open('/Users/azri-m/Desktop/Deploy TA/model/clf_banjir.pkl', 'rb'))
+tfidf_banjir = pickle.load(open('/Users/azri-m/Desktop/Deploy TA/model/tfidf1_banjir.pkl', 'rb'))
 
 
 mydb = mysql.connector.connect(
@@ -33,6 +33,7 @@ class StreamListener(tweepy.Stream):
         all_data = json.loads(data)
         text = all_data['text']
         text = clean(text, no_emoji=True)
+        print(text)
         created_at = all_data['created_at']
         id = all_data['id']
         if all_data['place'] == None:
@@ -46,24 +47,32 @@ class StreamListener(tweepy.Stream):
           location = place['full_name']
           bounding_box = place['bounding_box']
           coordinates = bounding_box['coordinates']
-          lat,lon = coordinates[0][0]
+          lon,lat = coordinates[0][0]
         username = all_data['user']['screen_name']
-        if username == "infoBMKG":
-            print(mag)
-            mag = re.findall(r'Mag:(\d+.?\d*)', text)
-            mag = float(mag[0])
-            BT = re.findall(r'(\d+.?\d*) BT', text)
+        if username == "280622fr":
+            if "mag:" in text :
+                mag = re.findall(r'mag:(\d+.?\d*)', text)
+                mag = float(mag[0])
+            elif "magnitudo:" in text:
+                mag = re.findall(r'magnitudo: (\d+.?\d*)', text)
+                mag = float(mag[0])
+            else:
+                mag = None
+            BT = re.findall(r'(\d+.?\d*) bt', text)
             re_longitude = float(BT[0])
-            if "LU" in text:
-                LU = re.findall(r'(\d+.?\d*) LU',text)
-                re_latitude = float(LU[0])
-            elif "LS" in text:
-                LS = re.findall(r'(\d+.?\d*) LS',text)
+            if "ls" in text:
+                LS = re.findall(r'(\d+.?\d*) ls',text)
                 re_latitude = float(LS[0])*-1
+            elif "lu" in text:
+                LU = re.findall(r'(\d+.?\d*) lu',text)
+                re_latitude = float(LU[0])
+            else:
+                re_longitude = None
+                re_latitude = None
             mycursor = mydb.cursor()
             mycursor.execute("INSERT INTO bencana_alam (id, filter, username, text, created_at, location, lon, lat, mag) VALUES (%s, 'gempa', %s, %s, %s, %s, %s, %s, %s)", (id, username, text, created_at, location, re_longitude, re_latitude, mag))
             mydb.commit()
-        if "gempa" in text.lower():
+        elif "gempa" in text.lower():
             predict = model_gempa.predict(tfidf_gempa.transform([text]))
             all_data['predicted'] = int(predict)
             predicted = all_data['predicted']
@@ -75,7 +84,7 @@ class StreamListener(tweepy.Stream):
             all_data['predicted'] = int(predict)
             predicted = all_data['predicted']
             mycursor = mydb.cursor()
-            mycursor.execute("INSERT INTO bencana_alam (id, filter, username, text, created_at, location, predicted, lon, lat) VALUES (%s, 'banjir', %s, %s, %s, %s, %s, %s, %s)", (id, username, text, created_at, location, predicted, lon, lat))
+            mycursor.execute("INSERT INTO bencana_alam (id, filter, username, text, created_at, location, predicted, lon, lat) VALUES (%s, 'gempa', %s, %s, %s, %s, %s, %s, %s)", (id, username, text, created_at, location, predicted, lon, lat))
             mydb.commit()
 
 
