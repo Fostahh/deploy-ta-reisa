@@ -11,10 +11,10 @@ from cleantext import clean
 # model = pickle.load(open('/Users/azri-m/Desktop/Deploy TA/model/clf.pkl','rb'))
 # tfidf = pickle.load(open('/Users/azri-m/Desktop/Deploy TA/model/tfidf1.pkl', 'rb'))
 
-model_gempa = pickle.load(open('/app/model/clf.pkl','rb'))
-tfidf_gempa = pickle.load(open('/app/model/tfidf1.pkl', 'rb'))
-model_banjir = pickle.load(open('/app/model/clf_banjir.pkl', 'rb'))
-tfidf_banjir = pickle.load(open('/app/model/tfidf1_banjir.pkl', 'rb'))
+model_gempa = pickle.load(open('/home/azrimuhammad777/deploy-ta-reisa/model/clf.pkl','rb'))
+tfidf_gempa = pickle.load(open('/home/azrimuhammad777/deploy-ta-reisa/app/model/tfidf1.pkl', 'rb'))
+model_banjir = pickle.load(open('/home/azrimuhammad777/deploy-ta-reisa/app/model/clf_banjir.pkl', 'rb'))
+tfidf_banjir = pickle.load(open('/home/azrimuhammad777/deploy-ta-reisa/app/model/tfidf1_banjir.pkl', 'rb'))
 
 
 mydb = mysql.connector.connect(
@@ -35,7 +35,6 @@ class StreamListener(tweepy.Stream):
         text = clean(text, no_emoji=True)
         created_at = all_data['created_at']
         id = all_data['id']
-        print(all_data +"\n")
         if all_data['place'] == None:
           place = None
           location = None
@@ -61,21 +60,21 @@ class StreamListener(tweepy.Stream):
                 LS = re.findall(r'(\d+.?\d*) LS',text)
                 re_latitude = float(LS[0])*-1
             mycursor = mydb.cursor()
-            mycursor.execute("INSERT INTO bmkg (text,username, re_longitude, re_latitude, created_at, mag) VALUES (%s, %s, %s, %s, %s, %s)",(text,username,re_longitude,re_latitude,created_at,mag))
+            mycursor.execute("INSERT INTO bencana_alam (id, filter, username, text, created_at, location, lon, lat, mag) VALUES (%s, 'gempa', %s, %s, %s, %s, %s, %s, %s)", (id, username, text, created_at, location, re_longitude, re_latitude, mag))
             mydb.commit()
         if "gempa" in text.lower():
             predict = model_gempa.predict(tfidf_gempa.transform([text]))
             all_data['predicted'] = int(predict)
             predicted = all_data['predicted']
             mycursor = mydb.cursor()
-            mycursor.execute("INSERT INTO gempa (id, username, text, created_at, location, predicted, lon, lat) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",(id,username,text,created_at,location,predicted,lon,lat))
+            mycursor.execute("INSERT INTO bencana_alam (id, filter, username, text, created_at, location, predicted, lon, lat) VALUES (%s, 'gempa', %s, %s, %s, %s, %s, %s, %s)", (id, username, text, created_at, location, predicted, lon, lat))
             mydb.commit()
         elif "banjir" in text.lower():
             predict = model_banjir.predict(tfidf_banjir.transform([text]))
             all_data['predicted'] = int(predict)
             predicted = all_data['predicted']
             mycursor = mydb.cursor()
-            mycursor.execute("INSERT INTO banjir (id, username, text, created_at, location, predicted, lon, lat) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",(id,username,text,created_at,location,predicted,lon,lat))
+            mycursor.execute("INSERT INTO bencana_alam (id, filter, username, text, created_at, location, predicted, lon, lat) VALUES (%s, 'banjir', %s, %s, %s, %s, %s, %s, %s)", (id, username, text, created_at, location, predicted, lon, lat))
             mydb.commit()
 
 
