@@ -11,14 +11,14 @@ from cleantext import clean
 # model = pickle.load(open('/Users/azri-m/Desktop/Deploy TA/model/clf.pkl','rb'))
 # tfidf = pickle.load(open('/Users/azri-m/Desktop/Deploy TA/model/tfidf1.pkl', 'rb'))
 
-model_gempa = pickle.load(open('/Users/azri-m/Desktop/Deploy TA/model/clf.pkl','rb'))
-tfidf_gempa = pickle.load(open('/Users/azri-m/Desktop/Deploy TA/model/tfidf1.pkl', 'rb'))
-model_banjir = pickle.load(open('/Users/azri-m/Desktop/Deploy TA/model/clf_banjir.pkl', 'rb'))
-tfidf_banjir = pickle.load(open('/Users/azri-m/Desktop/Deploy TA/model/tfidf1_banjir.pkl', 'rb'))
+model_gempa = pickle.load(open('/home/miladesiana_md/deploy-ta-reisa/model/clf.pkl','rb'))
+tfidf_gempa = pickle.load(open('/home/miladesiana_md/deploy-ta-reisa/model/tfidf1.pkl', 'rb'))
+model_banjir = pickle.load(open('/home/miladesiana_md/deploy-ta-reisa/model/clf_banjir.pkl', 'rb'))
+tfidf_banjir = pickle.load(open('/home/miladesiana_md/deploy-ta-reisa/model/tfidf1_banjir.pkl', 'rb'))
 
 
 mydb = mysql.connector.connect(
-  host="34.143.177.53",
+  host="34.142.231.201",
   user="azri",
   passwd="12345",
   database="db_skripsi")
@@ -49,7 +49,7 @@ class StreamListener(tweepy.Stream):
           coordinates = bounding_box['coordinates']
           lon,lat = coordinates[0][0]
         username = all_data['user']['screen_name']
-        if username == "280622fr":
+        if username == "infoBMKG" or "infoBMKG" in text.lower():
             if "mag:" in text :
                 mag = re.findall(r'mag:(\d+.?\d*)', text)
                 mag = float(mag[0])
