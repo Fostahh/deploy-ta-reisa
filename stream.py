@@ -1,11 +1,12 @@
 from venv import create
 import tweepy
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 import mysql.connector
 import json
 import pickle
 import pandas as pd
 import re
+import pytz
 from cleantext import clean
 
 # model = pickle.load(open('/Users/azri-m/Desktop/Deploy TA/model/clf.pkl','rb'))
@@ -35,6 +36,10 @@ class StreamListener(tweepy.Stream):
         text = clean(text, no_emoji=True)
         print(text)
         created_at = all_data['created_at']
+        converted = pytz.timezone('Asia/Bangkok')
+        created_at = datetime.strptime(created_at, '%a %b %d %H:%M:%S %z %Y')
+        created_at = created_at.astimezone(converted)
+        created_at = created_at.strftime('%a %b %d %H:%M%S %z %Y')
         id = all_data['id']
         if all_data['place'] == None:
           place = None
@@ -49,7 +54,7 @@ class StreamListener(tweepy.Stream):
           coordinates = bounding_box['coordinates']
           lon,lat = coordinates[0][0]
         username = all_data['user']['screen_name']
-        if username == "infoBMKG" or "infoBMKG" in text.lower():
+        if username == "infoBMKG" or "infobmkg" in text.lower():
             if "mag:" in text :
                 mag = re.findall(r'mag:(\d+.?\d*)', text)
                 mag = float(mag[0])
@@ -70,7 +75,7 @@ class StreamListener(tweepy.Stream):
                 re_longitude = None
                 re_latitude = None
             mycursor = mydb.cursor()
-            mycursor.execute("INSERT INTO bencana_alam (id, filter, username, text, created_at, location, lon, lat, mag) VALUES (%s, 'gempa', %s, %s, %s, %s, %s, %s, %s)", (id, username, text, created_at, location, re_longitude, re_latitude, mag))
+            mycursor.execute("INSERT INTO bencana_alam (id, predicted, filter, username, text, created_at, location, lon, lat, mag) VALUES (%s, '0', 'gempa', %s, %s, %s, %s, %s, %s, %s)", (id, username, text, created_at, location, re_longitude, re_latitude, mag))
             mydb.commit()
         elif "gempa" in text.lower():
             predict = model_gempa.predict(tfidf_gempa.transform([text]))
@@ -84,7 +89,7 @@ class StreamListener(tweepy.Stream):
             all_data['predicted'] = int(predict)
             predicted = all_data['predicted']
             mycursor = mydb.cursor()
-            mycursor.execute("INSERT INTO bencana_alam (id, filter, username, text, created_at, location, predicted, lon, lat) VALUES (%s, 'gempa', %s, %s, %s, %s, %s, %s, %s)", (id, username, text, created_at, location, predicted, lon, lat))
+            mycursor.execute("INSERT INTO bencana_alam (id, filter, username, text, created_at, location, predicted, lon, lat) VALUES (%s, 'banjir', %s, %s, %s, %s, %s, %s, %s)", (id, username, text, created_at, location, predicted, lon, lat))
             mydb.commit()
 
 
